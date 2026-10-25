@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Diario de Tensión Arterial</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2c5364">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Librerías LOCALES (sin internet): exceljs.min.js y chart.umd.js en la MISMA carpeta que esta página -->
+<script src="exceljs.min.js"></script>
+<script src="chart.umd.js"></script>
+<style>
+:root{--green:#4caf50;--yellow:#ffeb3b;--orange:#ff9800;--red-orange:#ff5722;--red:#d50000;--blue:#2196f3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:#1a2a3a;padding:15px;min-height:100vh;background-size:cover;background-position:center;background-attachment:fixed;transition:background 1.5s ease-in-out}
+.bg-0{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)}
+.bg-1{background:linear-gradient(135deg,#11998e 0%,#38ef7d 100%)}
+.bg-2{background:linear-gradient(135deg,#2193b0 0%,#6dd5ed 100%)}
+.bg-3{background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)}
+.bg-4{background:linear-gradient(135deg,#134e5e 0%,#71b280 100%)}
+.bg-5{background:linear-gradient(135deg,#2c3e50 0%,#4ca1af 100%)}
+.bg-6{background:linear-gradient(135deg,#373B44 0%,#4286f4 100%)}
+.bg-7{background:linear-gradient(135deg,#0052D4 0%,#4364F7 50%,#6FB1FC 100%)}
+.bg-8{background:linear-gradient(135deg,#1a2980 0%,#26d0ce 100%)}
+.bg-9{background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%)}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.1);pointer-events:none;z-index:0}
+.container{max-width:1100px;margin:auto;position:relative;z-index:1}
+h1{text-align:center;color:#fff;margin-bottom:20px;font-size:1.6em;text-shadow:2px 2px 8px rgba(0,0,0,.5);font-weight:700}
+h3{color:#fff;text-shadow:1px 1px 2px rgba(0,0,0,.3)}
+.card{background:rgba(255,255,255,.35);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);padding:20px;border-radius:15px;box-shadow:0 8px 32px rgba(0,0,0,.2);margin-bottom:20px;border:1px solid rgba(255,255,255,.4)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px;align-items:end}
+.form-group label{display:block;font-size:.85em;font-weight:600;margin-bottom:5px;color:#fff;text-shadow:1px 1px 2px rgba(0,0,0,.3)}
+.form-group input,.form-group select{width:100%;padding:10px;border:1px solid rgba(255,255,255,.5);border-radius:8px;font-size:1em;background:rgba(255,255,255,.6);backdrop-filter:blur(5px);color:#1a2a3a}
+.form-group input:focus,.form-group select:focus{outline:none;background:rgba(255,255,255,.85);border-color:#3498db}
+.optional-tag{font-size:.7em;color:#e0e0e0;font-weight:normal}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:1em;transition:.2s}
+.btn-primary{background:rgba(52,152,219,.9);color:#fff;backdrop-filter:blur(5px)}
+.btn-primary:hover{background:rgba(41,128,185,1);transform:translateY(-2px)}
+.btn-success{background:rgba(39,174,96,.9);color:#fff;backdrop-filter:blur(5px)}
+.btn-success:hover{background:rgba(33,154,82,1)}
+.btn-danger{background:rgba(231,76,60,.9);color:#fff;backdrop-filter:blur(5px)}
+.btn-danger:hover{background:rgba(192,57,43,1)}
+.btn-dark{background:rgba(120,0,0,.92);color:#fff;backdrop-filter:blur(5px)}
+.btn-dark:hover{background:rgba(90,0,0,1)}
+.button-group{display:flex;gap:10px;flex-wrap:wrap}
+.button-group .btn{flex:1;white-space:nowrap;padding:10px 8px;min-width:110px}
+.vectors-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;text-align:center}
+.vector-wrap{display:flex;flex-direction:column;align-items:center}
+.vector-title{font-weight:bold;margin-bottom:10px;font-size:1.1em;color:#fff;text-shadow:1px 1px 2px rgba(0,0,0,.3)}
+.vector-bar{width:50px;height:360px;position:relative;border-radius:8px;margin:0 auto;box-shadow:inset 0 0 5px rgba(0,0,0,.3);overflow:hidden}
+.bar-sys{background:linear-gradient(to top,var(--green) 0%,var(--green) 60%,var(--yellow) 60%,var(--yellow) 64.5%,var(--orange) 64.5%,var(--orange) 69.5%,var(--red-orange) 69.5%,var(--red-orange) 90%,var(--red) 90%,var(--red) 100%)}
+.bar-dia{background:linear-gradient(to top,var(--green) 0%,var(--green) 61.5%,var(--orange) 61.5%,var(--orange) 69.2%,var(--red-orange) 69.2%,var(--red-orange) 92.3%,var(--red) 92.3%,var(--red) 100%)}
+.bar-pulse{background:linear-gradient(to top,var(--blue) 0%,var(--blue) 40%,var(--green) 40%,var(--green) 66.6%,var(--orange) 66.6%,var(--orange) 80%,var(--red) 80%,var(--red) 100%)}
+.indicator{position:absolute;left:-10px;right:-10px;height:4px;background:#1a2a3a;box-shadow:0 0 5px rgba(0,0,0,.7);transition:bottom .5s ease;z-index:2}
+.indicator-label{position:absolute;left:60px;background:#1a2a3a;color:#fff;padding:2px 8px;border-radius:4px;font-size:.9em;font-weight:bold;white-space:nowrap;transition:bottom .5s ease;z-index:2}
+.vector-value{font-size:1.5em;font-weight:bold;margin-top:15px;color:#fff;text-shadow:1px 1px 2px rgba(0,0,0,.3)}
+.vector-status{font-size:.85em;margin-top:5px;padding:5px 10px;border-radius:20px;color:#fff;font-weight:600}
+@keyframes flashRed{0%{box-shadow:0 0 10px var(--red)}50%{box-shadow:0 0 30px var(--red),0 0 50px var(--red)}100%{box-shadow:0 0 10px var(--red)}}
+.crisis-alert{animation:flashRed 1s infinite;border:2px solid var(--red)}
+.ecg-container{background:#0a0a0a;border-radius:12px;padding:20px;position:relative;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.5),inset 0 0 20px rgba(0,255,255,.05);border:1px solid rgba(0,255,255,.2)}
+.ecg-container::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(rgba(0,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,255,.05) 1px,transparent 1px);background-size:20px 20px;pointer-events:none}
+.ecg-title{color:#0ff;text-align:center;margin-bottom:15px;font-size:1.1em;text-shadow:0 0 10px rgba(0,255,255,.5);font-weight:600}
+.ecg-chart{position:relative;height:250px}
+.diagnosis-box{text-align:center;padding:15px;border-radius:10px;font-size:1.2em;font-weight:bold;color:#fff;background:rgba(149,165,166,.9);backdrop-filter:blur(10px);transition:.3s;box-shadow:0 4px 15px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.3)}
+.log-table{width:100%;border-collapse:collapse;margin-top:15px}
+.log-table th,.log-table td{padding:12px;text-align:center;border-bottom:1px solid rgba(255,255,255,.3);color:#fff}
+.log-table th{background:rgba(52,152,219,.4);font-size:.9em;border-radius:5px;font-weight:700}
+.empty-msg{text-align:center;color:#e0e0e0;padding:20px;font-style:italic}
+@media(max-width:600px){.vector-bar{height:280px}.indicator-label{left:50px;font-size:.8em}h1{font-size:1.3em}}
+.ov{display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;padding:15px;background:rgba(10,20,30,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ov-box{background:rgba(255,255,255,.97);color:#1a2a3a;max-width:660px;width:100%;max-height:90vh;overflow:auto;border-radius:15px;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.5);line-height:1.5;font-size:.95em}
+.ov-box h2{font-size:1.25em;margin-bottom:10px;color:#1a2a3a}
+.ov-box h3{font-size:1em;margin:14px 0 4px;color:#1a2a3a;text-shadow:none}
+.ov-box p,.ov-box li{margin-bottom:6px}.ov-box ul{padding-left:20px}
+.ov-box a{color:#1565c0;cursor:pointer;text-decoration:underline}
+.ov-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.ov-actions .btn{flex:1;min-width:120px;color:#fff}
+.btn-accept{background:#2e9e4f}.btn-accept:hover{background:#25813f}
+.btn-reject{background:#d32f2f}.btn-reject:hover{background:#b02424}
+.btn-gray{background:#607d8b}
+.legal-foot{text-align:center;font-size:.85em;color:#fff;text-shadow:1px 1px 2px rgba(0,0,0,.4);padding-bottom:10px}
+.legal-foot a{color:#fff;cursor:pointer;text-decoration:underline}
+.disc{font-size:.8em;color:#f0f0f0;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🩺 Control Diario de Tensión Arterial</h1>
+
+<div class="card">
+  <h3 style="margin-bottom:15px">📝 Registrar Medición</h3>
+  <div class="form-grid">
+    <div class="form-group"><label>Fecha</label><input type="date" id="inDate"></div>
+    <div class="form-group"><label>Turno</label>
+      <select id="inShift">
+        <option value="morning">🌅 Mañana</option>
+        <option value="afternoon">☀️ Tarde</option>
+        <option value="night">🌙 Noche</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Sistólica *</label><input type="number" id="inSys" placeholder="120" required></div>
+    <div class="form-group"><label>Diastólica *</label><input type="number" id="inDia" placeholder="80" required></div>
+    <div class="form-group"><label>Pulso <span class="optional-tag">(opcional)</span></label><input type="number" id="inPulse" placeholder="70"></div>
+    <div class="form-group" style="grid-column:1 / -1;">
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="saveReading()">💾 Guardar</button>
+        <button class="btn btn-danger" onclick="clearForm()">🗑️ Borrar</button>
+        <button class="btn btn-dark" onclick="clearAll()">🧹 Borrar todo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:20px;text-align:center">📊 Indicadores de Riesgo (Última toma)</h3>
+  <div class="vectors-grid">
+    <div class="vector-wrap"><div class="vector-title">Sistólica</div>
+      <div class="vector-bar bar-sys" id="barSys"><div class="indicator" id="indSys" style="bottom:0%"></div><div class="indicator-label" id="labSys" style="bottom:0%">--</div></div>
+      <div class="vector-value" id="valSys">-- mmHg</div><div class="vector-status" id="statSys" style="background:#95a5a6">Sin datos</div></div>
+    <div class="vector-wrap"><div class="vector-title">Diastólica</div>
+      <div class="vector-bar bar-dia" id="barDia"><div class="indicator" id="indDia" style="bottom:0%"></div><div class="indicator-label" id="labDia" style="bottom:0%">--</div></div>
+      <div class="vector-value" id="valDia">-- mmHg</div><div class="vector-status" id="statDia" style="background:#95a5a6">Sin datos</div></div>
+    <div class="vector-wrap"><div class="vector-title">Pulso</div>
+      <div class="vector-bar bar-pulse" id="barPulse"><div class="indicator" id="indPulse" style="bottom:0%"></div><div class="indicator-label" id="labPulse" style="bottom:0%">--</div></div>
+      <div class="vector-value" id="valPulse">-- bpm</div><div class="vector-status" id="statPulse" style="background:#95a5a6">Sin datos</div></div>
+  </div>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden;background:transparent;border:none;box-shadow:none;backdrop-filter:none">
+  <div class="ecg-container">
+    <div class="ecg-title">💓 Tendencia Semanal - Sistólica / Diastólica / Pulso</div>
+    <div class="ecg-chart"><canvas id="ecgChart"></canvas></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:10px">🏥 Clasificación orientativa del día</h3>
+  <div id="globalDiagnosis" class="diagnosis-box">Sin registros hoy</div>
+  <div class="disc">Clasificación orientativa. No es un diagnóstico y no sustituye la valoración de un profesional sanitario.</div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <h3>📋 Registro de Tomas Diarias</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="document.getElementById('fileImport').click()">📥 Importar copia</button>
+      <button class="btn btn-success" onclick="exportToExcel()">📊 Exportar a Excel</button>
+      <input type="file" id="fileImport" accept=".xlsx" style="display:none" onchange="importCopy(this)">
+    </div>
+  </div>
+  <div class="disc" id="backupInfo"></div>
+  <table class="log-table">
+    <thead><tr><th>Turno</th><th>Fecha</th><th>Sistólica</th><th>Diastólica</th><th>Pulso</th><th>Estado</th></tr></thead>
+    <tbody id="logBody"><tr><td colspan="6" class="empty-msg">No hay registros para hoy.</td></tr></tbody>
+  </table>
+</div>
+<div class="legal-foot"><a onclick="toggleFull(true)">Aviso legal y privacidad</a> · R. Arias SV503</div>
+</div>
+
+<!-- VENTANA EMERGENTE (cada 30 días) -->
+<div id="legalModal" class="ov" role="dialog" aria-modal="true" aria-labelledby="legalTitle">
+  <div class="ov-box">
+    <h2 id="legalTitle">⚖️ Información Legal y Uso Aceptable</h2>
+    <h3>Propósito</h3>
+    <p>Esta aplicación es una herramienta gratuita y de uso personal para registrar tus mediciones de tensión arterial y pulso, verlas en gráficos y exportarlas a Excel para compartirlas, si lo deseas, con tu profesional sanitario.</p>
+    <h3>Privacidad</h3>
+    <p>No recogemos, enviamos ni almacenamos ningún dato personal. Todo lo que introduces se guarda únicamente en este dispositivo y la aplicación funciona sin conexión a internet. No cobramos ni recibimos donaciones, y no hay publicidad ni cookies de seguimiento.</p>
+    <h3>Responsabilidad del uso</h3>
+    <ul>
+      <li>La aplicación es <b>solo orientativa</b>: no diagnostica, no trata ni sustituye a tu médico. Ante síntomas o cifras muy altas, contacta con tu médico o llama al <b>112</b>.</li>
+      <li>No modifiques tu medicación basándote en esta aplicación.</li>
+      <li>Es para <b>mayores de 18 años</b> y de <b>uso personal</b> (no compartido).</li>
+      <li>Eres responsable de tus datos y de hacer copias (Exportar a Excel). Si borras los datos del navegador o usas el botón "Borrar todo", no se pueden recuperar.</li>
+    </ul>
+    <p><a onclick="toggleFull(true)">Leer el aviso legal y de privacidad completo</a></p>
+    <div class="ov-actions">
+      <button class="btn btn-accept" onclick="acceptLegal()">✅ Acepto</button>
+      <button class="btn btn-reject" onclick="rejectLegal()">❌ Rechazo</button>
+    </div>
+  </div>
+</div>
+
+<div id="rejectScreen" class="ov" style="z-index:1200;background:rgba(10,20,30,.96)" role="alertdialog" aria-modal="true">
+  <div class="ov-box" style="text-align:center">
+    <h2>🚫 Condiciones no aceptadas</h2>
+    <p>Las condiciones para usar la aplicación no fueron aceptadas. No es posible utilizarla. Ya puedes cerrar esta página.</p>
+    <div class="ov-actions"><button class="btn btn-gray" onclick="showLegalAgain()">Volver a leer las condiciones</button></div>
+  </div>
+</div>
+
+<!-- AVISO LEGAL COMPLETO -->
+<div id="fullLegal" class="ov" style="z-index:1100" role="dialog" aria-modal="true">
+  <div class="ov-box">
+    <h2>Aviso legal y política de privacidad</h2>
+    <p><i>Versión 1.1 · Última actualización: 25 de octubre de 2026</i></p>
+    <h3>1. Titular</h3>
+    <p>R. Arias SV503. La aplicación se ofrece de forma gratuita, para uso personal y sin ninguna actividad económica asociada.</p>
+    <h3>2. Objeto</h3>
+    <p>"Control Diario de Tensión Arterial" permite anotar mediciones de tensión sistólica, diastólica y pulso, consultarlas, ver su evolución semanal y exportarlas a un archivo Excel.</p>
+    <h3>3. Privacidad y protección de datos</h3>
+    <ul>
+      <li><b>No recabamos información personal de ningún tipo.</b> La aplicación no tiene servidores, cuentas de usuario, formularios de contacto, analítica, publicidad ni herramientas de terceros. Funciona sin conexión a internet y no envía ningún dato a ningún sitio.</li>
+      <li>Las mediciones que introduces se guardan únicamente en el almacenamiento local (<i>localStorage</i>) de tu navegador, en tu propio dispositivo. El titular no tiene acceso a ellas.</li>
+      <li>Además de tus mediciones, el dispositivo guarda solo dos datos técnicos: la fecha en que aceptaste estas condiciones (para volver a mostrártelas cada 30 días) y la preferencia del fondo visual.</li>
+      <li>Al ser un almacenamiento técnico y estrictamente necesario para que la aplicación funcione y no utilizar cookies de seguimiento, no se requiere banner de cookies (art. 22.2 de la Ley 34/2002, LSSI-CE).</li>
+      <li>Las mediciones de tensión son datos de salud, una categoría especial de datos (art. 9 del Reglamento (UE) 2016/679, RGPD). Al permanecer bajo tu exclusivo control, para fines personales o domésticos (art. 2.2.c RGPD), el titular no actúa como responsable ni encargado del tratamiento. La protección de tu dispositivo (contraseña, bloqueo de pantalla) es tu responsabilidad.</li>
+      <li>Tus derechos (acceso, rectificación, supresión, portabilidad, conforme al RGPD y a la Ley Orgánica 3/2018, LOPDGDD) los ejerces tú directamente: consultas los datos en pantalla, los exportas con "Exportar a Excel" y los eliminas con "Borrar todo" o borrando los datos del sitio en tu navegador.</li>
+      <li>Los archivos Excel que exportes se guardan en tu dispositivo; su custodia y a quién se los entregas (por ejemplo, a tu médico) es decisión y responsabilidad tuya.</li>
+      <li><b>Resguardo automático:</b> una vez al día, al abrir la aplicación o al guardar una toma, la aplicación genera y descarga en tu propio dispositivo (carpeta Descargas) una copia en Excel de tus registros. Esa copia no se envía a ningún sitio; su custodia es tuya.</li>
+      <li><b>Importar copia:</b> lee, dentro de tu dispositivo, un Excel generado por la aplicación; el archivo no se sube a ningún servidor.</li>
+      <li><b>Alojamiento y acceso directo:</b> la aplicación se ofrece a través de GitHub Pages. Ese servicio de alojamiento, ajeno al titular, puede registrar técnicamente datos de conexión (como la dirección IP) cuando se descarga la página, según sus propias políticas. Después, la aplicación funciona sin conexión y no envía tus mediciones a ningún sitio. Al instalarla como acceso directo en Android, se guarda una copia de la aplicación en tu dispositivo.</li>
+    </ul>
+    <h3>4. Gratuidad</h3>
+    <p>La aplicación es gratuita. No se cobra por su uso, no hay suscripciones ni compras, no se reciben donaciones y no se muestra publicidad.</p>
+    <h3>5. Naturaleza orientativa. No es un producto sanitario</h3>
+    <ul>
+      <li>La aplicación no es un producto sanitario ni un servicio médico (Reglamento (UE) 2017/745). Sus clasificaciones ("Normal", "Elevada", "Estadio 1", "Estadio 2", "Compatible con crisis hipertensiva") siguen rangos de referencia generales y son meramente orientativas. <b>No diagnostica, no trata y no sustituye a un profesional sanitario.</b></li>
+      <li>Mide siempre con un tensiómetro validado y consulta a tu médico para interpretar los resultados. No cambies ni suspendas tratamientos por lo que indique esta aplicación.</li>
+      <li>Ante dolor de pecho, dificultad para respirar, dolor de cabeza intenso, alteraciones de la visión o del habla, debilidad o cualquier síntoma de alarma, llama al <b>112</b>.</li>
+    </ul>
+    <h3>6. Uso aceptable</h3>
+    <ul>
+      <li>Uso exclusivo de personas <b>mayores de 18 años</b>.</li>
+      <li>Uso <b>personal e individual</b>: la aplicación no está pensada para compartirse entre varios pacientes, ya que esto mezclaría historiales médicos.</li>
+      <li>Está prohibido usarla con fines ilícitos o presentarla como herramienta de diagnóstico.</li>
+    </ul>
+    <h3>7. Responsabilidad</h3>
+    <p>La aplicación se ofrece "tal cual", sin garantías de ningún tipo en cuanto a su exactitud o disponibilidad. El titular no responde de errores de cálculo o clasificación, de decisiones tomadas a partir de la información mostrada, ni de la pérdida de datos (por ejemplo, al borrar los datos del navegador, usar modo privado, cambiar o perder el dispositivo o usar "Borrar todo"). Se recomienda exportar copias periódicas a Excel. Esto se entiende sin perjuicio de los derechos que la ley reconoce de forma irrenunciable a las personas consumidoras y usuarias.</p>
+    <h3>8. Propiedad intelectual y componentes de terceros</h3>
+    <p>La aplicación incluye localmente las bibliotecas ExcelJS (licencia MIT) y Chart.js (licencia MIT), que pertenecen a sus respectivos autores y se usan conforme a sus licencias.</p>
+    <h3>9. Vigencia y modificaciones</h3>
+    <p>Estas condiciones se muestran de nuevo cada 30 días. El titular puede actualizarlas; la versión vigente es la indicada arriba.</p>
+    <h3>10. Legislación aplicable</h3>
+    <p>Este aviso se rige por la legislación española, en particular el RGPD, la LOPDGDD (Ley Orgánica 3/2018), la LSSI-CE (Ley 34/2002) y el Texto Refundido de la Ley General para la Defensa de los Consumidores y Usuarios (Real Decreto Legislativo 1/2007). Para cualquier controversia serán competentes los juzgados y tribunales que correspondan conforme a la normativa vigente.</p>
+    <div class="ov-actions"><button class="btn btn-gray" onclick="toggleFull(false)">Cerrar</button></div>
+  </div>
+</div>
+
+<script>
+const MAX_SYS = 200, MAX_DIA = 130, MAX_PULSE = 150;
+let db = JSON.parse(localStorage.getItem('bp_data')) || {};
+let ecgChart = null;
+
+function setCalmingBackground() {
+  let i = localStorage.getItem('bg_index');
+  i = (i === null) ? Math.floor(Math.random() * 10) : (parseInt(i) + 1) % 10;
+  localStorage.setItem('bg_index', i);
+  document.body.className = `bg-${i}`;
+}
+setCalmingBackground();
+document.getElementById('inDate').valueAsDate = new Date();
+
+function getCategories(sys, dia, pulse) {
+  let catSys = 'Normal', catDia = 'Normal', catPulse = 'N/A';
+  let colorSys = '#4caf50', colorDia = '#4caf50', colorPulse = '#95a5a6';
+  if (sys !== null && sys !== undefined) {
+    if (sys < 120) { catSys = 'Normal'; colorSys = '#4caf50'; }
+    else if (sys <= 129) { catSys = 'Elevada'; colorSys = '#ffeb3b'; }
+    else if (sys <= 139) { catSys = 'Estadio 1'; colorSys = '#ff9800'; }
+    else if (sys <= 179) { catSys = 'Estadio 2'; colorSys = '#ff5722'; }
+    else { catSys = '¡CRISIS!'; colorSys = '#d50000'; }
+  }
+  if (dia !== null && dia !== undefined) {
+    if (dia < 80) { catDia = 'Normal'; colorDia = '#4caf50'; }
+    else if (dia <= 89) { catDia = 'Estadio 1'; colorDia = '#ff9800'; }
+    else if (dia <= 119) { catDia = 'Estadio 2'; colorDia = '#ff5722'; }
+    else { catDia = '¡CRISIS!'; colorDia = '#d50000'; }
+  }
+  if (pulse !== null && pulse !== undefined) {
+    if (pulse < 60) { catPulse = 'Bradicardia'; colorPulse = '#2196f3'; }
+    else if (pulse <= 100) { catPulse = 'Normal'; colorPulse = '#4caf50'; }
+    else if (pulse <= 120) { catPulse = 'Taquicardia'; colorPulse = '#ff9800'; }
+    else { catPulse = 'Taquicardia Severa'; colorPulse = '#d50000'; }
+  }
+  return { catSys, catDia, catPulse, colorSys, colorDia, colorPulse };
+}
+
+// Estado combinado (sistólica + diastólica): se usa en la tabla y en el Excel
+function overallStatus(rec) {
+  const c = getCategories(rec.sys, rec.dia, rec.pulse);
+  if (c.catSys === '¡CRISIS!' || c.catDia === '¡CRISIS!') return '¡CRISIS!';
+  if (c.catSys === 'Estadio 2' || c.catDia === 'Estadio 2') return 'Estadio 2';
+  if (c.catSys === 'Estadio 1' || c.catDia === 'Estadio 1') return 'Estadio 1';
+  return c.catSys;
+}
+
+function updateVectors(sys, dia, pulse) {
+  const cats = getCategories(sys, dia, pulse);
+  function setVec(type, val, max, color, cat) {
+    const stat = document.getElementById(`stat${type}`);
+    if (val === null || val === undefined) {
+      document.getElementById(`ind${type}`).style.bottom = '0%';
+      document.getElementById(`lab${type}`).style.bottom = '0%';
+      document.getElementById(`lab${type}`).innerText = '--';
+      document.getElementById(`val${type}`).innerText = type === 'Pulse' ? '-- bpm' : '-- mmHg';
+      stat.innerText = 'Sin dato';
+      stat.style.background = '#95a5a6';
+      return;
+    }
+    const pct = Math.min((val / max) * 100, 100);
+    document.getElementById(`ind${type}`).style.bottom = `${pct}%`;
+    document.getElementById(`lab${type}`).style.bottom = `calc(${pct}% + 10px)`;
+    document.getElementById(`lab${type}`).innerText = val;
+    document.getElementById(`val${type}`).innerText = `${val} ${type === 'Pulse' ? 'bpm' : 'mmHg'}`;
+    stat.innerText = cat;
+    stat.style.background = color;
+    stat.style.color = (color === '#ffeb3b') ? '#333' : 'white';
+  }
+  setVec('Sys', sys, MAX_SYS, cats.colorSys, cats.catSys);
+  setVec('Dia', dia, MAX_DIA, cats.colorDia, cats.catDia);
+  setVec('Pulse', pulse, MAX_PULSE, cats.colorPulse, cats.catPulse);
+
+  const barSys = document.getElementById('barSys'), barDia = document.getElementById('barDia');
+  if ((sys !== null && sys >= 180) || (dia !== null && dia >= 120)) {
+    barSys.classList.add('crisis-alert');
+    barDia.classList.add('crisis-alert');
+    alert("🚨 VALORES COMPATIBLES CON CRISIS HIPERTENSIVA 🚨\nCifras superiores a 180/120 mmHg.\nLa aplicación no diagnostica: si tienes síntomas o las cifras se confirman, llama al 112 o contacta con tu médico.");
+  } else {
+    barSys.classList.remove('crisis-alert');
+    barDia.classList.remove('crisis-alert');
+  }
+}
+
+function updateGlobalDiagnosis(date) {
+  const box = document.getElementById('globalDiagnosis');
+  const dayData = db[date];
+  if (!dayData) {
+    box.innerText = "Sin registros hoy";
+    box.style.background = "rgba(149, 165, 166, 0.9)";
+    return;
+  }
+  const order = ['Normal', 'Elevada', 'Estadio 1', 'Estadio 2', '¡CRISIS!'];
+  let maxRisk = 0;
+  Object.values(dayData).forEach(rec => {
+    maxRisk = Math.max(maxRisk, order.indexOf(overallStatus(rec)));
+  });
+  const levels = [
+    { text: "✅ Normal", color: "rgba(76, 175, 80, 0.95)" },
+    { text: "⚠️ Presión Elevada", color: "rgba(241, 196, 15, 0.95)" },
+    { text: "🟠 Hipertensión Estadio 1", color: "rgba(255, 152, 0, 0.95)" },
+    { text: "🔴 Hipertensión Estadio 2", color: "rgba(255, 87, 34, 0.95)" },
+    { text: "🚨 Compatible con crisis hipertensiva - Consulte al médico / 112", color: "rgba(213, 0, 0, 0.95)" }
+  ];
+  box.innerText = levels[maxRisk].text;
+  box.style.background = levels[maxRisk].color;
+}
+
+function renderLog(date) {
+  const tbody = document.getElementById('logBody');
+  tbody.innerHTML = '';
+  const dayData = db[date];
+  if (!dayData || Object.keys(dayData).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No hay registros para este día.</td></tr>';
+    return;
+  }
+  const shifts = { morning: '🌅 Mañana', afternoon: '☀️ Tarde', night: '🌙 Noche' };
+  ['morning', 'afternoon', 'night'].forEach(shift => {
+    if (dayData[shift]) {
+      const rec = dayData[shift];
+      const cats = getCategories(rec.sys, rec.dia, rec.pulse);
+      const st = overallStatus(rec);
+      const color = st === cats.catDia ? cats.colorDia : cats.colorSys;
+      tbody.innerHTML += `<tr><td>${shifts[shift]}</td><td>${date}</td><td>${rec.sys}</td><td>${rec.dia}</td><td>${rec.pulse || '-'}</td><td><span style="color:${color};font-weight:bold;text-shadow:0 0 3px rgba(0,0,0,.6)">${st}</span></td></tr>`;
+    }
+  });
+}
+
+function updateECGChart() {
+  if (typeof Chart === 'undefined') return;
+  const ctx = document.getElementById('ecgChart').getContext('2d');
+  const dates = [], today = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  const labels = dates.map(d => new Date(d).toLocaleDateString('es', { weekday: 'short', day: 'numeric' }));
+  const sysData = [], diaData = [], pulseData = [];
+  dates.forEach(date => {
+    const dayData = db[date];
+    if (dayData && Object.keys(dayData).length) {
+      const vals = Object.values(dayData);
+      sysData.push(vals.reduce((s, v) => s + (v.sys || 0), 0) / vals.length);
+      diaData.push(vals.reduce((s, v) => s + (v.dia || 0), 0) / vals.length);
+      const pv = vals.filter(v => v.pulse).map(v => v.pulse);
+      pulseData.push(pv.length ? pv.reduce((s, v) => s + v, 0) / pv.length : null);
+    } else { sysData.push(null); diaData.push(null); pulseData.push(null); }
+  });
+  if (ecgChart) ecgChart.destroy();
+  const ds = (label, data, c, extra = {}) => ({ label, data, borderColor: c, backgroundColor: c + '1a', borderWidth: 3, tension: .4, pointRadius: 5, pointBackgroundColor: c, pointBorderColor: '#fff', pointBorderWidth: 2, fill: false, ...extra });
+  ecgChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [ds('Sistólica', sysData, '#ff5722'), ds('Diastólica', diaData, '#2196f3'), ds('Pulso', pulseData, '#4caf50', { spanGaps: true })] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#00ffff', font: { size: 12, weight: 'bold' } } } },
+      scales: {
+        x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(0,255,255,0.1)' } },
+        y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(0,255,255,0.1)' }, beginAtZero: false }
+      }
+    }
+  });
+}
+
+function saveReading() {
+  const date = document.getElementById('inDate').value;
+  const shift = document.getElementById('inShift').value;
+  const sys = parseInt(document.getElementById('inSys').value);
+  const dia = parseInt(document.getElementById('inDia').value);
+  const pulseVal = document.getElementById('inPulse').value;
+  const pulse = pulseVal ? parseInt(pulseVal) : null;
+  if (!date || !sys || !dia) {
+    alert("Por favor, completa la fecha, sistólica y diastólica (obligatorios).");
+    return;
+  }
+  if (!db[date]) db[date] = {};
+  db[date][shift] = { sys, dia, pulse };
+  localStorage.setItem('bp_data', JSON.stringify(db));
+  updateVectors(sys, dia, pulse);
+  updateGlobalDiagnosis(date);
+  renderLog(date);
+  updateECGChart();
+  clearForm();
+  maybeAutoBackup();
+}
+
+function clearForm() {
+  document.getElementById('inSys').value = '';
+  document.getElementById('inDia').value = '';
+  document.getElementById('inPulse').value = '';
+}
+
+// Elimina TODOS los datos para que otro paciente use la app desde cero
+function clearAll() {
+  if (!confirm("⚠️ Se borrarán TODOS los registros guardados en este dispositivo.\nTu historial puede ser importante para tu médico: se recomienda EXPORTAR A EXCEL antes de borrar.\nEsta acción no se puede deshacer.\n¿Deseas continuar?")) return;
+  localStorage.removeItem('bp_data');
+  db = {};
+  clearForm();
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('inDate').value = today;
+  document.getElementById('inShift').value = 'morning';
+  updateVectors(null, null, null);
+  updateGlobalDiagnosis(today);
+  renderLog(today);
+  updateECGChart();
+}
+
+const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const SHIFTS=['morning','afternoon','night'];
+const ORDER=['Normal','Elevada','Estadio 1','Estadio 2','¡CRISIS!'];
+const ST_COLOR=['#4caf50','#ffeb3b','#ff9800','#ff5722','#d50000'];
+const DARK=['#d50000','#ff5722','#2196f3'];
+const XL_BRD={top:{style:'thin',color:{argb:'FFBBBBBB'}},left:{style:'thin',color:{argb:'FFBBBBBB'}},bottom:{style:'thin',color:{argb:'FFBBBBBB'}},right:{style:'thin',color:{argb:'FFBBBBBB'}}};
+const xlFill=c=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+c.replace('#','').toUpperCase()}});
+const avgN=a=>{a=a.filter(v=>typeof v==='number');return a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:null;};
+const localDate=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+
+function downloadBlob(blob,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+
+// Gráfico de tendencia (mismo estilo que la app) como imagen PNG
+function chartPng(labels,sys,dia,pul,title){
+  const c=document.createElement('canvas');c.width=760;c.height=340;
+  const bg={id:'bg',beforeDraw(ch){const x=ch.ctx;x.save();x.fillStyle='#0a0a0a';x.fillRect(0,0,ch.width,ch.height);x.restore();}};
+  const ds=(l,d,col)=>({label:l,data:d,borderColor:col,backgroundColor:col,borderWidth:3,tension:.4,pointRadius:4,pointBackgroundColor:col,pointBorderColor:'#fff',pointBorderWidth:1,spanGaps:true});
+  const ch=new Chart(c,{type:'line',data:{labels,datasets:[ds('Sistólica',sys,'#ff5722'),ds('Diastólica',dia,'#2196f3'),ds('Pulso',pul,'#4caf50')]},
+    options:{animation:false,responsive:false,devicePixelRatio:1,
+      plugins:{legend:{labels:{color:'#00ffff'}},title:{display:true,text:title,color:'#00ffff'}},
+      scales:{x:{ticks:{color:'#aaa'},grid:{color:'rgba(0,255,255,0.1)'}},y:{ticks:{color:'#aaa'},grid:{color:'rgba(0,255,255,0.1)'}}}},plugins:[bg]});
+  const url=c.toDataURL('image/png');ch.destroy();return url;
+}
+
+// Libro de un año: una hoja por mes, una fila por día con las 3 tomas, promedios y gráfico
+async function buildWorkbook(year){
+  const wb=new ExcelJS.Workbook();wb.creator='Control Diario de Tensión Arterial';wb.created=new Date();
+  const put=(cell,v,col)=>{cell.value=v;cell.fill=xlFill(col);cell.font={color:{argb:DARK.includes(col)?'FFFFFFFF':'FF000000'}};};
+  const L=['B','C','D','E','F','G','H','I','J'];
+  for(let m=0;m<12;m++){
+    const days=new Date(year,m+1,0).getDate(), mm=String(m+1).padStart(2,'0'), last=4+days, mrow=last+2;
+    const ws=wb.addWorksheet(MONTHS[m],{views:[{state:'frozen',ySplit:4}]});
+    ws.columns=[16,...Array(9).fill(9),11,11,11,20].map(w=>({width:w}));
+    ws.mergeCells('A1:N1');
+    const t=ws.getCell('A1');t.value=`${MONTHS[m].toUpperCase()} ${year}`;t.font={bold:true,size:14,color:{argb:'FFFFFFFF'}};t.fill=xlFill('#203a43');t.alignment={horizontal:'center'};
+    [['A3:A4','Fecha'],['B3:D3','MAÑANA'],['E3:G3','TARDE'],['H3:J3','NOCHE'],['K3:M3','PROMEDIO DEL DÍA'],['N3:N4','Estado del día']].forEach(([r,v])=>{ws.mergeCells(r);ws.getCell(r.split(':')[0]).value=v;});
+    ['Sis','Dia','Pul'].forEach((h,i)=>{[2,5,8,11].forEach(b=>{ws.getRow(4).getCell(b+i).value=h;});});
+    for(let r=3;r<=4;r++)for(let c=1;c<=14;c++){const x=ws.getRow(r).getCell(c);x.fill=xlFill('#34495e');x.font={bold:true,color:{argb:'FFFFFFFF'}};}
+    const cv=Array.from({length:11},()=>[]),labels=[],dS=[],dD=[],dP=[];
+    for(let d=1;d<=days;d++){
+      const r=4+d, dd=String(d).padStart(2,'0'), recs=db[`${year}-${mm}-${dd}`]||{}, row=ws.getRow(r);
+      row.getCell(1).value=`${dd}/${mm}/${year}`;
+      const S=[],D=[],P=[];let worst=-1;
+      SHIFTS.forEach((sh,i)=>{
+        const rec=recs[sh];if(!rec)return;
+        const c=getCategories(rec.sys,rec.dia,rec.pulse),b=2+3*i;
+        put(row.getCell(b),rec.sys,c.colorSys);put(row.getCell(b+1),rec.dia,c.colorDia);
+        S.push(rec.sys);D.push(rec.dia);cv[b].push(rec.sys);cv[b+1].push(rec.dia);
+        if(rec.pulse){put(row.getCell(b+2),rec.pulse,c.colorPulse);P.push(rec.pulse);cv[b+2].push(rec.pulse);}
+        worst=Math.max(worst,ORDER.indexOf(overallStatus(rec)));
+      });
+      const a=[avgN(S),avgN(D),avgN(P)];
+      [['B','E','H'],['C','F','I'],['D','G','J']].forEach((cols,i)=>{
+        row.getCell(11+i).value={formula:`IFERROR(ROUND(AVERAGE(${cols.map(c=>c+r).join(',')}),1),"")`,result:a[i]??''};
+      });
+      if(worst>=0){put(row.getCell(14),ORDER[worst],ST_COLOR[worst]);}
+      labels.push(String(d));dS.push(a[0]);dD.push(a[1]);dP.push(a[2]);
+    }
+    // promedio mensual
+    const mr=ws.getRow(mrow);mr.getCell(1).value='PROM. MENSUAL';
+    for(let c=2;c<=10;c++)mr.getCell(c).value={formula:`IFERROR(ROUND(AVERAGE(${L[c-2]}5:${L[c-2]}${last}),1),"")`,result:avgN(cv[c])??''};
+    [['B','E','H'],['C','F','I'],['D','G','J']].forEach((cols,i)=>{
+      mr.getCell(11+i).value={formula:`IFERROR(ROUND(AVERAGE(${cols.map(c=>c+'5:'+c+last).join(',')}),1),"")`,result:avgN([2,5,8].flatMap(b=>cv[b+i]))??''};
+    });
+    for(let c=1;c<=14;c++){const x=mr.getCell(c);x.fill=xlFill('#cfd8dc');x.font={bold:true};}
+    for(let r=3;r<=mrow;r++){if(r===last+1)continue;for(let c=1;c<=14;c++){const x=ws.getRow(r).getCell(c);x.border=XL_BRD;x.alignment={horizontal:'center',vertical:'middle'};}}
+    const img=wb.addImage({base64:chartPng(labels,dS,dD,dP,`Tendencia diaria - ${MONTHS[m]} ${year}`),extension:'png'});
+    ws.addImage(img,{tl:{col:15,row:2},ext:{width:760,height:340}});
+  }
+  // hoja oculta con los datos (permite "Importar copia")
+  const wd=wb.addWorksheet('Datos');wd.addRow(['Fecha','Turno','Sistólica','Diastólica','Pulso']);
+  Object.keys(db).sort().filter(d=>d.startsWith(year+'-')).forEach(d=>SHIFTS.forEach(sh=>{const r=db[d][sh];if(r)wd.addRow([d,sh,r.sys,r.dia,r.pulse||null]);}));
+  wd.state='hidden';
+  return new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+function libsOk(){return typeof ExcelJS!=='undefined'&&typeof Chart!=='undefined';}
+
+async function exportToExcel(){
+  if(Object.keys(db).length===0){alert("No hay datos para exportar.");return;}
+  if(!libsOk()){alert("Faltan los archivos exceljs.min.js y/o chart.umd.js en la misma carpeta que esta página.");return;}
+  const years=[...new Set(Object.keys(db).map(d=>d.slice(0,4)))].sort();
+  for(const y of years){
+    try{downloadBlob(await buildWorkbook(+y),`Tension_Arterial_${y}.xlsx`);}
+    catch(e){alert('No se pudo crear el Excel de '+y+': '+e.message);}
+    await new Promise(r=>setTimeout(r,700));
+  }
+}
+
+// Resguardo automático diario (un archivo por mes: Resguardo_Tension_AAAA-MM.xlsx)
+function showBackupInfo(){
+  let d=null;try{d=localStorage.getItem('bp_last_backup');}catch(e){}
+  document.getElementById('backupInfo').innerText=d?`Último resguardo automático en Descargas: ${d}`:'Resguardo automático diario: se creará al guardar tu primera toma.';
+}
+async function maybeAutoBackup(){
+  try{
+    if(!libsOk()||Object.keys(db).length===0)return;
+    const today=localDate();
+    if(localStorage.getItem('bp_last_backup')===today)return;
+    const year=Math.max(...Object.keys(db).map(d=>+d.slice(0,4)));
+    downloadBlob(await buildWorkbook(year),`Resguardo_Tension_${today.slice(0,7)}.xlsx`);
+    localStorage.setItem('bp_last_backup',today);
+    showBackupInfo();
+  }catch(e){console.error(e);}
+}
+
+// Importar una copia Excel generada por la app (hoja "Datos")
+async function importCopy(input){
+  const f=input.files[0];input.value='';
+  if(!f)return;
+  if(typeof ExcelJS==='undefined'){alert("Falta el archivo exceljs.min.js en la misma carpeta que esta página.");return;}
+  try{
+    const wb=new ExcelJS.Workbook();await wb.xlsx.load(await f.arrayBuffer());
+    const ws=wb.getWorksheet('Datos');
+    if(!ws){alert("Este archivo no es una copia generada por esta aplicación.");return;}
+    const found=[];
+    ws.eachRow((row,n)=>{
+      if(n===1)return;
+      const d=String(row.getCell(1).value||'').trim(),sh=String(row.getCell(2).value||'').trim();
+      const sys=Number(row.getCell(3).value),dia=Number(row.getCell(4).value),pv=row.getCell(5).value,pulse=pv?Number(pv):null;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&SHIFTS.includes(sh)&&sys>=40&&sys<=300&&dia>=20&&dia<=200&&(pulse===null||(pulse>=20&&pulse<=250)))found.push({d,sh,sys,dia,pulse});
+    });
+    if(!found.length){alert("No se encontraron registros válidos en el archivo.");return;}
+    if(!confirm(`Se importarán ${found.length} tomas.\nLas que coincidan en fecha y turno se sobrescribirán.\n¿Continuar?`))return;
+    found.forEach(r=>{db[r.d]=db[r.d]||{};db[r.d][r.sh]={sys:r.sys,dia:r.dia,pulse:r.pulse};});
+    localStorage.setItem('bp_data',JSON.stringify(db));
+    document.getElementById('inDate').dispatchEvent(new Event('change'));
+    updateECGChart();
+    alert(`Importación completada: ${found.length} tomas.`);
+  }catch(e){alert("No se pudo leer el archivo: "+e.message);}
+}
+
+function loadToday() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('inDate').value = today;
+  renderLog(today);
+  updateGlobalDiagnosis(today);
+  updateECGChart();
+  const dayData = db[today];
+  if (dayData) {
+    const last = ['night', 'afternoon', 'morning'].find(s => dayData[s]);
+    if (last) updateVectors(dayData[last].sys, dayData[last].dia, dayData[last].pulse);
+  }
+}
+
+document.getElementById('inDate').addEventListener('change', function () {
+  renderLog(this.value);
+  updateGlobalDiagnosis(this.value);
+  const dayData = db[this.value];
+  const last = dayData && ['night', 'afternoon', 'morning'].find(s => dayData[s]);
+  if (last) updateVectors(dayData[last].sys, dayData[last].dia, dayData[last].pulse);
+  else updateVectors(null, null, null);
+});
+
+// ---- Aviso legal: se muestra una vez cada 30 días ----
+const LEGAL_KEY = 'bp_legal_ok', LEGAL_DAYS = 30;
+let appStarted = false;
+function legalValid() {
+  try {
+    const t = parseInt(localStorage.getItem(LEGAL_KEY));
+    const now = Date.now();
+    return !isNaN(t) && t <= now && (now - t) < LEGAL_DAYS * 86400000;
+  } catch (e) { return false; }
+}
+function startApp() { if (!appStarted) { appStarted = true; loadToday(); showBackupInfo(); setTimeout(maybeAutoBackup, 1500); } }
+function acceptLegal() {
+  try { localStorage.setItem(LEGAL_KEY, String(Date.now())); } catch (e) {}
+  document.getElementById('legalModal').style.display = 'none';
+  startApp();
+}
+function rejectLegal() {
+  document.getElementById('legalModal').style.display = 'none';
+  document.getElementById('rejectScreen').style.display = 'flex';
+}
+function showLegalAgain() {
+  document.getElementById('rejectScreen').style.display = 'none';
+  document.getElementById('legalModal').style.display = 'flex';
+}
+function toggleFull(show) { document.getElementById('fullLegal').style.display = show ? 'flex' : 'none'; }
+
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(() => {});
+if (legalValid()) startApp();
+else document.getElementById('legalModal').style.display = 'flex';
+</script>
+</body>
+</html>
